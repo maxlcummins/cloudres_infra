@@ -3,10 +3,7 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Create a non-root user
-RUN adduser -D myuser
-
-# Install Node.js and npm
-RUN apt-get update && apt-get install -y nodejs npm
+RUN adduser --no-create-home --disabled-password myuser
 
 # Copy backend requirements and install
 COPY backend/requirements.txt .
