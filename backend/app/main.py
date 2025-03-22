@@ -2,6 +2,7 @@ from fastapi import FastAPI, File, UploadFile, BackgroundTasks
 from uuid import uuid4
 from app.storage import upload_files_to_s3
 from app.database import save_pipeline_run, get_pipeline_run_status
+from starlette.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Response, HTTPException
 import boto3
@@ -23,13 +24,16 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173",
+                   "ec2-3-27-62-142.ap-southeast-2.compute.amazonaws.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.post("/upload")
+app.mount("/", StaticFiles(directory="frontend/dist", html=True), name="static")
+
+@app.post("upload")
 async def upload_fastq(
     background_tasks: BackgroundTasks,
     files: list[UploadFile] = File(...)
@@ -200,7 +204,7 @@ def trigger_pipeline(run_id: str, s3_paths: list[str]):
         logger.error(f"Error launching EC2 instance: {e}")
         save_pipeline_run(run_id, status="failed", results={"error": str(e)})
 
-@app.post("/notify_completion")
+@app.post("notify_completion")
 async def check_completion_marker(run_id: str):
     logger.info(f"Completion notification received for run_id: {run_id}")
     s3 = boto3.client('s3')
@@ -213,7 +217,7 @@ async def check_completion_marker(run_id: str):
         logger.info(f"Completion marker not found for {run_id}: {e}")
         return {"status": "running"}
 
-@app.get("/status")
+@app.get("status")
 async def get_status(run_id: str):
     """
     Check the status of the pipeline run.
@@ -230,7 +234,7 @@ async def get_status(run_id: str):
         logger.info(f"S3 marker not found: {str(e)}")
         return {"status": "processing"}  # Or another appropriate status
 
-@app.get("/results")
+@app.get("results")
 async def get_results(run_id: str):
     """
     Retrieve the results from S3 for the given run_id.
@@ -296,7 +300,7 @@ TESTDATA123,Escherichia coli,131,blaCTX-M-15:100.00:936/956"""
         return Response(content=f"Unable to retrieve results, pipeline still running: {str(e)}", media_type="text/plain", status_code=500)
     
 # Add this new endpoint for serving the MultiQC report
-@app.get("/multiqc_report")
+@app.get("multiqc_report")
 async def get_multiqc_report(run_id: str):
     """
     Download the MultiQC report from S3 and serve it to the frontend
@@ -329,14 +333,14 @@ async def get_multiqc_report(run_id: str):
         )
 
 # Development test endpoints
-@app.get("/test/status")
+@app.get("test/status")
 async def test_status(run_id: str, status: str = "running"):
     """Development endpoint to simulate different statuses"""
     logger.info(f"TEST: Setting status for {run_id} to {status}")
     save_pipeline_run(run_id, status=status, results=None)
     return {"status": status}
 
-@app.get("/test/results")
+@app.get("test/results")
 async def test_results():
     """Development endpoint to return mock results"""
     mock_results = """sample,species,ST,hits
@@ -344,7 +348,7 @@ TESTDATA123,Escherichia coli,131,blaCTX-M-15:100.00:936/956
 TESTDATA456,Klebsiella pneumoniae,258,blaNDM-1:99.87:1234/1236"""
     return Response(content=mock_results, media_type="text/csv")
 
-@app.get("/test/multiqc")
+@app.get("test/multiqc")
 async def test_multiqc():
     """Development endpoint to return a mock MultiQC report"""
     mock_html = """<!DOCTYPE html>
