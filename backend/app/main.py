@@ -36,7 +36,7 @@ def trigger_pipeline(run_id: str, s3_paths: list[str]):
     try:
         print(f"Starting EC2 launch for run_id: {run_id}")
 
-        ec2 = boto3.client('ec2')
+        ec2 = boto3.client('ec2', region_name='ap-southeast-2')
 
         params_json = json.dumps({"s3_paths": s3_paths, "run_id": run_id})
 
