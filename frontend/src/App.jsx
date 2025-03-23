@@ -32,7 +32,7 @@ function App() {
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [showRunId, setShowRunId] = useState(false);
 
-  const API_BASE_URL = "http://localhost:8000"; 
+  const API_BASE_URL = "/api"; 
 
   const onDrop = useCallback(acceptedFiles => {
     setFiles(acceptedFiles);
