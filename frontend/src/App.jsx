@@ -137,7 +137,7 @@ function App() {
   useEffect(() => {
     if (!runId) return;
 
-    setMessage("Pipeline processing... (this may take around 10-15 minutes)");
+    setMessage("Pipeline processing... (this may take around 10-15 minutes per sample)");
     setCheckingStatus(true);
 
     const statusInterval = setInterval(async () => {
@@ -156,7 +156,7 @@ function App() {
             setMessage("Pipeline complete! Fetching results...");
             fetchResults();
           } else {
-            setMessage(`Pipeline status: ${statusData.status}... (this may take around 10 minutes per sample)`);
+            setMessage(`Pipeline status: ${statusData.status}... (this may take around 10-15 minutes per sample)`);
           }
         } else {
           console.error(`Status check failed: ${statusRes.status} ${statusRes.statusText}`);
