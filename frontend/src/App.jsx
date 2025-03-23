@@ -32,7 +32,7 @@ function App() {
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [showRunId, setShowRunId] = useState(false);
 
-  const API_BASE_URL = "https://d161ji9kkf5sy8.cloudfront.net/api"; // Replace with your CloudFront domain
+  const API_BASE_URL = "http://localhost:8000"; 
 
   const onDrop = useCallback(acceptedFiles => {
     setFiles(acceptedFiles);
