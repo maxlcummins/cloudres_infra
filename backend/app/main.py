@@ -301,11 +301,11 @@ TESTDATA123,Escherichia coli,131,blaCTX-M-15:100.00:936/956"""
             logger.info(f"No results directory found for {run_id}")
             return Response(content="No results yet", media_type="text/plain", status_code=202)
         
-        # Find files with .abritamr.tsv extension
-        tsv_files = [obj['Key'] for obj in response['Contents'] if obj['Key'].endswith('.abritamr.tsv')]
+        # Find files with the exact name abritamr.tsv
+        tsv_files = [obj['Key'] for obj in response['Contents'] if obj['Key'].split('/')[-1] == 'abritamr.tsv']
         
         if not tsv_files:
-            logger.info(f"No .abritamr.tsv files found for {run_id}")
+            logger.info(f"No abritamr.tsv files found for {run_id}")
             return Response(content="No results ready yet", media_type="text/plain", status_code=202)
         
         logger.info(f"Found results file(s): {tsv_files}")
