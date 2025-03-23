@@ -166,17 +166,27 @@ def trigger_pipeline(run_id: str, s3_paths: list[str]):
         echo "Preparing sample sheet for nextflow run..."
         SAMPLE_SHEET="/home/ec2-user/runs/${{run_id}}/samplesheet.csv"
 
-        # Identify FASTQ files dynamically. Assumes filenames contain _R1 or _R2.
-        fastq_r1=$(ls | grep -E "(_R1|_1)" | head -n 1)
-        fastq_r2=$(ls | grep -E "(_R2|_2)" | head -n 1)
-
-        # Extract sample name from the R1 filename.
-        sample_name=$(basename "$fastq_r1" | sed 's/_R1.*//')
-
+        # Start with the header
         echo "sample,fastq_1,fastq_2" > "$SAMPLE_SHEET"
-        echo "${{sample_name}},/home/ec2-user/runs/${{run_id}}/${{fastq_r1}},/home/ec2-user/runs/${{run_id}}/${{fastq_r2}}" >> "$SAMPLE_SHEET"
+
+        # Find all R1 files
+        for fastq_r1 in $(ls | grep -E "(_R1|_1)" | sort); do
+        # For each R1 file, find the matching R2 file
+        sample_name=$(basename "$fastq_r1" | sed 's/_R1.*//')
+        # Look for matching R2 file
+        fastq_r2=$(ls | grep -E "${sample_name}.*(_R2|_2)" | head -n 1)
+        
+        if [ ! -z "$fastq_r2" ]; then
+            echo "Adding sample: $sample_name"
+            echo "${{sample_name}},/home/ec2-user/runs/${{run_id}}/${{fastq_r1}},/home/ec2-user/runs/${{run_id}}/${{fastq_r2}}" >> "$SAMPLE_SHEET"
+        else
+            echo "WARNING: No matching R2 file found for $fastq_r1"
+        fi
+        done
 
         echo "Sample sheet created at: $SAMPLE_SHEET"
+        echo "Contents of sample sheet:"
+        cat "$SAMPLE_SHEET"
 
         echo "Running nextflow..."
         nextflow run /home/ec2-user/cloudres/main.nf -profile docker --hostile_db /home/ec2-user/hostile/ --input $SAMPLE_SHEET --genome_size 5000000 -work-dir work --outdir /home/ec2-user/runs/${{run_id}}/results/
