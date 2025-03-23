@@ -1,0 +1,67 @@
+#!/bin/bash
+echo "Updating package lists..."
+sudo yum update -y
+date
+
+echo "Installing git..."
+sudo yum install -y git
+date
+
+# Clone repo
+git clone https://github.com/maxlcummins/cloudres_infra.git
+
+echo "Installing python"
+sudo yum install -y python312
+sudo yum install -y pip
+
+# Enter backend
+cd cloudres_infra/backend
+
+# Install packages
+pip install --no-cache-dir -r requirements.txt
+
+# Install npm and nodejs
+sudo yum install -y nodejs
+sudo yum install -y nginx
+sudo npm install -g npm  # Update npm
+
+# Enter frontend directory
+cd ../frontend
+
+# Setup frontend
+npm install
+npm run build
+
+# Get region
+region=$(ec2-metadata --availability-zone | sed 's/.$//' | sed 's/.* //')
+
+# Get Instance ID
+instance_id=$(ec2-metadata -i | sed 's/.* //')
+
+# Check if instance_id and region are empty
+if [ -z "$instance_id" ]; then
+  echo "Error: Could not retrieve instance ID from metadata service."
+  exit 1
+fi
+
+if [ -z "$region" ]; then
+  echo "Error: Could not retrieve region from metadata service."
+  exit 1
+fi
+
+echo "Instance ID: $instance_id"
+echo "Region: $region"
+
+# Replace "your-elastic-ip-allocation-id" with the actual Allocation ID of your Elastic IP
+elastic_ip_id="eipalloc-0011ba29672e7cff4"
+
+# Check if Elastic IP is already associated with the instance
+association_exists=$(aws ec2 describe-addresses --allocation-ids ${elastic_ip_id} --filters "Name=instance-id,Values=${instance_id}" --query "Addresses[0].AssociationId" --output text --region ${region} 2>/dev/null)
+
+if [ -z "$association_exists" ]; then
+  echo "Associating Elastic IP ${elastic_ip_id} with instance ${instance_id} in region ${region}..."
+  aws ec2 associate-address --instance-id ${instance_id} --allocation-id ${elastic_ip_id} --region ${region}
+  echo "Elastic IP ${elastic_ip_id} associated with instance."
+else
+  echo "Elastic IP ${elastic_ip_id} already associated with this instance."
+fi
