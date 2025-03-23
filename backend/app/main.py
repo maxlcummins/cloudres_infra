@@ -278,7 +278,7 @@ TESTDATA123,Escherichia coli,131,blaCTX-M-15:100.00:936/956"""
     
     s3 = boto3.client('s3')
     bucket_name = "cloudresoutput"
-    prefix = f"{run_id}/results/abritamr/"
+    prefix = f"{run_id}/results/csvtk/" # Final output folder here
     
     try:
         # List objects in the directory first
@@ -291,20 +291,20 @@ TESTDATA123,Escherichia coli,131,blaCTX-M-15:100.00:936/956"""
             logger.info(f"No results directory found for {run_id}")
             return Response(content="No results yet", media_type="text/plain", status_code=202)
         
-        # Find files with .abritamr.txt extension
-        txt_files = [obj['Key'] for obj in response['Contents'] if obj['Key'].endswith('.abritamr.txt')]
+        # Find files with .abritamr.tsv extension
+        tsv_files = [obj['Key'] for obj in response['Contents'] if obj['Key'].endswith('.abritamr.tsv')]
         
-        if not txt_files:
-            logger.info(f"No .abritamr.txt files found for {run_id}")
+        if not tsv_files:
+            logger.info(f"No .abritamr.tsv files found for {run_id}")
             return Response(content="No results ready yet", media_type="text/plain", status_code=202)
         
-        logger.info(f"Found results file(s): {txt_files}")
+        logger.info(f"Found results file(s): {tsv_files}")
         
         # Get the first result file found
-        txt_obj = s3.get_object(Bucket=bucket_name, Key=txt_files[0])
-        txt_text = txt_obj["Body"].read().decode('utf-8')
+        tsv_obj = s3.get_object(Bucket=bucket_name, Key=tsv_files[0])
+        tsv_text = tsv_obj["Body"].read().decode('utf-8')
         
-        return Response(content=txt_text, media_type="text/plain")
+        return Response(content=tsv_text, media_type="text/plain")
     
     except Exception as e:
         logger.error(f"Error retrieving results for {run_id}: {e}")
