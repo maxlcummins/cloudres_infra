@@ -65,20 +65,22 @@ def trigger_pipeline(run_id: str, s3_paths: list[str]):
         echo "Extracting run_id from params.json..."
         run_id=$(jq -r '.run_id' /home/ec2-user/runs/params.json)
         date
-        echo "run_id: $run_id"
+        echo "run_id: ${{run_id}}"
 
         echo "Creating run_id directory..."
-        sudo mkdir -p /home/ec2-user/runs/$run_id
+        sudo mkdir -p /home/ec2-user/runs/${{run_id}}
         date
 
         echo "Changing directory to run directory..."
-        cd /home/ec2-user/runs/$run_id
+        cd /home/ec2-user/runs/${{run_id}}
         date
 
         echo "Copying data from S3..."
         for s3_path in $(jq -r '.s3_paths[]' /home/ec2-user/runs/params.json); do
-        aws s3 cp "$s3_path" .
+          aws s3 cp "$s3_path" .
         done
+        mkdir -p /home/ec2-user/hostile/
+        aws s3 sync s3://hostile/hostile /home/ec2-user/hostile 
         date
 
         echo "Installing Java..."
@@ -98,19 +100,45 @@ def trigger_pipeline(run_id: str, s3_paths: list[str]):
         sudo yum install -y jq
         date
 
-        echo "Cloning nextflow repo..."
-        mkdir -p /home/ec2-user/MonkeyPoxWebApp/
-        git clone https://github.com/maxlcummins/MonkeyPoxWebApp /home/ec2-user/MonkeyPoxWebApp/
+        echo "Installing Docker..."
+        sudo sudo yum install -y docker
+        sudo service docker start
         date
 
+        echo "Cloning nextflow repo..."
+        mkdir -p /home/ec2-user/cloudres/
+        git clone -b dev https://github.com/maxlcummins/cloudres /home/ec2-user/cloudres/
+        date
+
+        echo "Preparing sample sheet for nextflow run..."
+        SAMPLE_SHEET="/home/ec2-user/runs/${{run_id}}/samplesheet.csv"
+
+        # Identify FASTQ files dynamically. Assumes filenames contain _R1 or _R2.
+        fastq_r1=$(ls | grep -E "(_R1|_1)" | head -n 1)
+        fastq_r2=$(ls | grep -E "(_R2|_2)" | head -n 1)
+
+        # Extract sample name from the R1 filename.
+        sample_name=$(basename "$fastq_r1" | sed 's/_R1.*//')
+
+        echo "sample,fastq_1,fastq_2" > "$SAMPLE_SHEET"
+        echo "${{sample_name}},/home/ec2-user/runs/${{run_id}}/${{fastq_r1}},/home/ec2-user/runs/${{run_id}}/${{fastq_r2}}" >> "$SAMPLE_SHEET"
+
+        echo "Sample sheet created at: $SAMPLE_SHEET"
+
         echo "Running nextflow..."
-        nextflow run /home/ec2-user/MonkeyPoxWebApp/pipeline/main.nf -input_dir /home/ec2-user/runs/$run_id -work-dir work
+        nextflow run /home/ec2-user/cloudres/main.nf -profile docker --hostile_db /home/ec2-user/hostile/ --input $SAMPLE_SHEET --genome_size 5000000 -work-dir work --outdir /home/ec2-user/runs/${{run_id}}/results/
         date
 
         echo "Uploading results..."
-        aws s3 sync /home/ec2-user/runs/$run_id/work/results/ s3://mpoxoutput/$run_id/results/
+        aws s3 sync /home/ec2-user/runs/${{run_id}}/results/ s3://cloudresoutput/${{run_id}}/results/
         date
 
+        # Create completion marker BEFORE we terminate
+        echo "Notifying of completion via S3..."
+        echo "" > /tmp/empty.txt
+        aws s3 cp /tmp/empty.txt s3://cloudresoutput/${{run_id}}/completion_marker.txt
+
+        
         echo "User data script complete."
         """
 
