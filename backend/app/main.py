@@ -160,7 +160,7 @@ def trigger_pipeline(run_id: str, s3_paths: list[str]):
 
         echo "Cloning nextflow repo..."
         mkdir -p /home/ec2-user/cloudres/
-        git clone -b dev https://github.com/maxlcummins/cloudres /home/ec2-user/cloudres/
+        git clone https://github.com/maxlcummins/cloudres /home/ec2-user/cloudres/
         date
 
         echo "Preparing sample sheet for nextflow run..."
