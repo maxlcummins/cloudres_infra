@@ -4,6 +4,7 @@ from app.storage import upload_files_to_s3
 from app.database import save_pipeline_run, get_pipeline_run_status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Response, HTTPException
+from fastapi.responses import FileResponse
 import boto3
 import json
 import base64
@@ -415,21 +416,20 @@ async def get_nextflow_report(run_id: str):
         )
     
 
-# Example Flask endpoints
-@app.route('/api/download-test-data/<filename>')
-def download_test_file(filename):
+
+@app.get('/api/download-test-data/{filename}')
+async def download_test_file(filename: str):
     # Security validation
     if filename not in ['reads_R1.fastq.gz', 'reads_R2.fastq.gz']:
-        return jsonify({'error': 'Invalid filename'}), 400
+        raise HTTPException(status_code=400, detail="Invalid filename")
         
     file_path = os.path.join('/Users/other/cloudres_infra/test_data', filename)
     
     if not os.path.exists(file_path):
-        return jsonify({'error': 'File not found'}), 404
+        raise HTTPException(status_code=404, detail="File not found")
     
-    return send_file(
-        file_path,
-        mimetype='application/gzip',
-        as_attachment=True,
-        download_name=filename
+    return FileResponse(
+        path=file_path,
+        media_type='application/gzip',
+        filename=filename
     )
