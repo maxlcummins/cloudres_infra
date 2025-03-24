@@ -177,7 +177,7 @@ def trigger_pipeline(run_id: str, s3_paths: list[str]):
         fastq_r2=$(ls | grep -E "${sample_name}.*(_R2|_2)" | head -n 1)
         
         if [ ! -z "$fastq_r2" ]; then
-            echo "Adding sample: $sample_name"
+            echo "Adding sample: ${sample_name}"
             echo "${sample_name},/home/ec2-user/runs/${{run_id}}/${fastq_r1},/home/ec2-user/runs/${{run_id}}/${fastq_r2}" >> "$SAMPLE_SHEET"
         else
             echo "WARNING: No matching R2 file found for $fastq_r1"
