@@ -11,6 +11,7 @@ import base64
 import asyncio
 import logging
 import os
+from pathlib import Path
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
