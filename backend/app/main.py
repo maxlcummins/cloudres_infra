@@ -93,7 +93,7 @@ def trigger_pipeline(run_id: str, s3_paths: list[str]):
 
         params_json = json.dumps({"s3_paths": s3_paths, "run_id": run_id})
 
-        user_data = f"""#!/bin/bash
+                user_data = f"""#!/bin/bash
         sudo -i
         set -e
         set -x
@@ -171,17 +171,17 @@ def trigger_pipeline(run_id: str, s3_paths: list[str]):
 
         # Find all R1 files
         for fastq_r1 in $(ls | grep -E "(_R1|_1)" | sort); do
-        # For each R1 file, find the matching R2 file
-        sample_name=$(basename "$fastq_r1" | sed 's/_R1.*//')
-        # Look for matching R2 file
-        fastq_r2=$(ls | grep -E "${sample_name}.*(_R2|_2)" | head -n 1)
-        
-        if [ ! -z "$fastq_r2" ]; then
-            echo "Adding sample: ${sample_name}"
-            echo "${sample_name},/home/ec2-user/runs/${{run_id}}/${fastq_r1},/home/ec2-user/runs/${{run_id}}/${fastq_r2}" >> "$SAMPLE_SHEET"
-        else
-            echo "WARNING: No matching R2 file found for $fastq_r1"
-        fi
+            # For each R1 file, find the matching R2 file
+            sample_name=$(basename "$fastq_r1" | sed 's/_R1.*//')
+            # Look for matching R2 file
+            fastq_r2=$(ls | grep -E "${sample_name}.*(_R2|_2)" | head -n 1)
+
+            if [ ! -z "$fastq_r2" ]; then
+                echo "Adding sample: $sample_name"
+                echo "$sample_name,/home/ec2-user/runs/${{run_id}}/$fastq_r1,/home/ec2-user/runs/${{run_id}}/$fastq_r2" >> "$SAMPLE_SHEET"
+            else
+                echo "WARNING: No matching R2 file found for $fastq_r1"
+            fi
         done
 
         echo "Sample sheet created at: $SAMPLE_SHEET"
