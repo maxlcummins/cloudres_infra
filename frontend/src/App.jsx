@@ -322,9 +322,9 @@ function App() {
         <header className="mb-8">
           <h1 className="text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">CloudRes</h1>
           <p className="text-center text-gray-600 mt-3 max-w-2xl mx-auto">
-          A cloud-based genomic analysis platform for read preprocessing, genomic assembly and sequence typing and antimicrobial resistance screening.<br />
+          A cloud-based genomic analysis platform for read preprocessing, genomic assembly, sequence typing and antimicrobial resistance screening.<br />
           <br /> 
-          Upload your FASTQ files to identify antimicrobial resistance genes, virulence factors, and more.
+          Upload your FASTQ files to get started.
         </p>        
       </header>
         
