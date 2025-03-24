@@ -93,7 +93,7 @@ def trigger_pipeline(run_id: str, s3_paths: list[str]):
 
         params_json = json.dumps({"s3_paths": s3_paths, "run_id": run_id})
 
-                user_data = f"""#!/bin/bash
+        user_data = f"""#!/bin/bash
         sudo -i
         set -e
         set -x
