@@ -213,6 +213,11 @@ def trigger_pipeline(run_id: str, s3_paths: list[str]):
 
         
         echo "User data script complete."
+
+        echo "Terminating instance..."
+        INSTANCE_ID=$(ec2-metadata -i | awk 'print $2')
+        aws ec2 terminate-instances --instance-ids $INSTANCE_ID --region ap-southeast-2
+        echo "Instance termination initiated."
         """
         
         logger.info(f"User Data length: {len(user_data)}")
