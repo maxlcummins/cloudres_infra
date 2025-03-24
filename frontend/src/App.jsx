@@ -630,8 +630,8 @@ function App() {
           </div>
         </div>
         
-        {/* Test Data Download Button - Below Footer */}
-        <div className="mb-8 flex justify-center">
+        {/* Test Data Download Button with increased top margin */}
+        <div className="mt-10 mb-8 flex justify-center">
           <a 
             href={`${API_BASE_URL}/download-test-data-bundle`}
             className="flex items-center bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors shadow-sm border border-gray-300"
