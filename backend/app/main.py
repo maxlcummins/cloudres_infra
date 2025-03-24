@@ -31,6 +31,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add this near the top with your other imports if not already present
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
 @app.post("/notify_completion")
 async def check_completion_marker(run_id: str):
     logger.info(f"Completion notification received for run_id: {run_id}")
@@ -414,19 +417,21 @@ async def get_nextflow_report(run_id: str):
             media_type="text/plain",
             status_code=404
         )
-    
-
 
 @app.get('/api/download-test-data/{filename}')
 async def download_test_file(filename: str):
     # Security validation
     if filename not in ['reads_R1.fastq.gz', 'reads_R2.fastq.gz']:
         raise HTTPException(status_code=400, detail="Invalid filename")
-        
-    file_path = os.path.join('/Users/other/cloudres_infra/test_data', filename)
+    
+    # Use relative path - go up from app/main.py to the project root
+    file_path = os.path.join(BASE_DIR, 'test_data', filename)
+    
+    logger.info(f"Attempting to serve test file: {file_path}")
     
     if not os.path.exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found")
+        logger.error(f"Test file not found: {file_path}")
+        raise HTTPException(status_code=404, detail=f"File not found: {file_path}")
     
     return FileResponse(
         path=file_path,
