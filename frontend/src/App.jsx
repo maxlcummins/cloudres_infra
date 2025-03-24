@@ -671,7 +671,7 @@ function App() {
           <div className="flex items-center gap-6 mb-4">
             {/* GitHub Link */}
             <a 
-              href="https://github.com/yourusername/cloudres" 
+              href="https://github.com/maxlcummins/cloudres" 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"
