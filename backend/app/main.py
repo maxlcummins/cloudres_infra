@@ -413,118 +413,23 @@ async def get_nextflow_report(run_id: str):
             media_type="text/plain",
             status_code=404
         )
+    
 
-# Development test endpoints
-@app.get("/test/status")
-async def test_status(run_id: str, status: str = "running"):
-    """Development endpoint to simulate different statuses"""
-    logger.info(f"TEST: Setting status for {run_id} to {status}")
-    save_pipeline_run(run_id, status=status, results=None)
-    return {"status": status}
-
-@app.get("/test/results")
-async def test_results():
-    """Development endpoint to return mock results"""
-    mock_results = """sample,species,ST,hits
-TESTDATA123,Escherichia coli,131,blaCTX-M-15:100.00:936/956
-TESTDATA456,Klebsiella pneumoniae,258,blaNDM-1:99.87:1234/1236"""
-    return Response(content=mock_results, media_type="text/csv")
-
-@app.get("/test/multiqc")
-async def test_multiqc():
-    """Development endpoint to return a mock MultiQC report"""
-    mock_html = """<!DOCTYPE html>
-<html>
-<head>
-    <title>Mock MultiQC Report</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .chart { width: 100%; height: 300px; background-color: #f0f0f0; display: flex; 
-                align-items: center; justify-content: center; margin: 20px 0; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; }
-        th { background-color: #f2f2f2; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-    </style>
-</head>
-<body>
-    <h1>Mock MultiQC Report</h1>
-    <p>This is a simulated MultiQC report for development purposes.</p>
+# Example Flask endpoints
+@app.route('/api/download-test-data/<filename>')
+def download_test_file(filename):
+    # Security validation
+    if filename not in ['reads_R1.fastq.gz', 'reads_R2.fastq.gz']:
+        return jsonify({'error': 'Invalid filename'}), 400
+        
+    file_path = os.path.join('/Users/other/cloudres_infra/test_data', filename)
     
-    <h2>Sequence Quality Histograms</h2>
-    <div class="chart">Mock Quality Score Distribution Chart</div>
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'File not found'}), 404
     
-    <h2>Adapter Content</h2>
-    <div class="chart">Mock Adapter Content Chart</div>
-    
-    <h2>Per Sequence GC Content</h2>
-    <div class="chart">Mock GC Content Distribution</div>
-    
-    <h2>Sample Statistics</h2>
-    <table>
-        <tr>
-            <th>Sample</th>
-            <th>Total Sequences</th>
-            <th>Sequences Flagged as Poor Quality</th>
-            <th>GC %</th>
-        </tr>
-        <tr>
-            <td>Sample 1</td>
-            <td>1,234,567</td>
-            <td>1,234</td>
-            <td>52%</td>
-        </tr>
-        <tr>
-            <td>Sample 2</td>
-            <td>2,345,678</td>
-            <td>2,345</td>
-            <td>48%</td>
-        </tr>
-    </table>
-    
-    <p>This is just a placeholder. In a real MultiQC report, you would see interactive charts and comprehensive statistics.</p>
-</body>
-</html>"""
-    return Response(content=mock_html, media_type="text/html")
-
-# Add to the development test endpoints section
-@app.get("/test/nextflow")
-async def test_nextflow():
-    """Development endpoint to return a mock Nextflow report"""
-    mock_html = """<!DOCTYPE html>
-<html>
-<head>
-    <title>Nextflow Execution Report</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .chart { width: 100%; height: 300px; background-color: #f0f0f0; display: flex; 
-                align-items: center; justify-content: center; margin: 20px 0; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; }
-        th { background-color: #f2f2f2; }
-        tr:nth-child(even) { background-color: #f9f9f9; }
-    </style>
-</head>
-<body>
-    <h1>Nextflow Execution Report</h1>
-    <p>This is a simulated Nextflow report for development purposes.</p>
-    
-    <h2>Workflow Summary</h2>
-    <table>
-        <tr><th>Launch time</th><td>2025-03-24 02:09:03</td></tr>
-        <tr><th>Execution status</th><td>OK</td></tr>
-        <tr><th>Duration</th><td>1h 23m 45s</td></tr>
-        <tr><th>CPU-Hours</th><td>2.4</td></tr>
-    </table>
-    
-    <h2>Resource Usage</h2>
-    <div class="chart">Mock CPU Usage Chart</div>
-    <div class="chart">Mock Memory Usage Chart</div>
-    
-    <h2>Tasks Execution Timeline</h2>
-    <div class="chart">Mock Timeline Chart</div>
-    
-    <p>This is just a placeholder. In a real Nextflow report, you would see interactive charts and detailed execution statistics.</p>
-</body>
-</html>"""
-    return Response(content=mock_html, media_type="text/html")
+    return send_file(
+        file_path,
+        mimetype='application/gzip',
+        as_attachment=True,
+        download_name=filename
+    )
