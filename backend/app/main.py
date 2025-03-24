@@ -170,11 +170,16 @@ def trigger_pipeline(run_id: str, s3_paths: list[str]):
         echo "sample,fastq_1,fastq_2" > "$SAMPLE_SHEET"
 
         # Find all R1 files
+        echo "Listing files in directory..."
+        ls -l
+        echo "Finding R1 files..."
         for fastq_r1 in $(ls | grep -E "(_R1|_1)" | sort); do
+            echo "Found R1 file: $fastq_r1"
             # For each R1 file, find the matching R2 file
             sample_name=$(basename "$fastq_r1" | sed 's/_R1.*//')
+            echo "Sample name: $sample_name"
             # Look for matching R2 file
-            fastq_r2=$(ls | grep -E "${sample_name}.*(_R2|_2)" | head -n 1)
+            fastq_r2=$(ls | grep -E "$sample_name.*(_R2|_2)" | head -n 1)
 
             if [ ! -z "$fastq_r2" ]; then
                 echo "Adding sample: $sample_name"
