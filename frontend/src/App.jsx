@@ -46,7 +46,7 @@ function App() {
     // Helper function to trigger a file download
     const downloadFile = (filename) => {
       const link = document.createElement('a');
-      link.href = `${API_BASE_URL}/download-test-data/${filename}`;
+      link.href = `${API_BASE_URL}/api/download-test-data/${filename}`;
       link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
@@ -632,16 +632,15 @@ function App() {
         
         {/* Test Data Download Button with increased top margin */}
         <div className="mt-10 mb-8 flex justify-center">
-          <a 
-            href={`${API_BASE_URL}/download-test-data-bundle`}
+          <button 
+            onClick={downloadTestDataFiles}
             className="flex items-center bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors shadow-sm border border-gray-300"
-            download
           >
             <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
             </svg>
             Download Test Reads
-          </a>
+          </button>
         </div>
 
         {/* Footer */}
