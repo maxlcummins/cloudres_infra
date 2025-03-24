@@ -358,6 +358,62 @@ async def get_multiqc_report(run_id: str):
             status_code=404
         )
 
+@app.get("/nextflow_report")
+async def get_nextflow_report(run_id: str):
+    """
+    Download the Nextflow execution report from S3 and serve it to the frontend
+    """
+    logger.info(f"Nextflow report request for run_id: {run_id}")
+    
+    s3 = boto3.client('s3')
+    bucket_name = "cloudresoutput"
+    
+    # List all objects in the pipeline_info directory to find the execution report
+    prefix = f"{run_id}/results/pipeline_info/"
+    
+    try:
+        # List objects in the directory first
+        logger.info(f"Looking for Nextflow reports in s3://{bucket_name}/{prefix}")
+        response = s3.list_objects_v2(Bucket=bucket_name, Prefix=prefix)
+        
+        # Debug log the response
+        if 'Contents' not in response:
+            logger.warning(f"No files found in s3://{bucket_name}/{prefix}")
+        else:
+            logger.info(f"Found {len(response['Contents'])} files in pipeline_info directory")
+            for obj in response.get('Contents', []):
+                logger.info(f"Found file: {obj['Key']}")
+        
+        # Find the execution report file (they have timestamps in the name)
+        execution_reports = [obj['Key'] for obj in response.get('Contents', []) 
+                           if 'execution_report' in obj['Key'] and obj['Key'].endswith('.html')]
+        
+        if not execution_reports:
+            logger.warning(f"No execution_report files found for {run_id}")
+            return Response(
+                content="Nextflow execution report not available yet.",
+                media_type="text/plain",
+                status_code=404
+            )
+        
+        # Get the most recent report (usually there's only one)
+        report_key = execution_reports[0]
+        logger.info(f"Using report file: {report_key}")
+        report_obj = s3.get_object(Bucket=bucket_name, Key=report_key)
+        report_content = report_obj["Body"].read().decode('utf-8')
+        
+        return Response(
+            content=report_content,
+            media_type="text/html"
+        )
+    except Exception as e:
+        logger.error(f"Error retrieving Nextflow report for {run_id}: {e}")
+        return Response(
+            content=f"Nextflow report not available yet. Please try again later.",
+            media_type="text/plain",
+            status_code=404
+        )
+
 # Development test endpoints
 @app.get("/test/status")
 async def test_status(run_id: str, status: str = "running"):
@@ -427,6 +483,48 @@ async def test_multiqc():
     </table>
     
     <p>This is just a placeholder. In a real MultiQC report, you would see interactive charts and comprehensive statistics.</p>
+</body>
+</html>"""
+    return Response(content=mock_html, media_type="text/html")
+
+# Add to the development test endpoints section
+@app.get("/test/nextflow")
+async def test_nextflow():
+    """Development endpoint to return a mock Nextflow report"""
+    mock_html = """<!DOCTYPE html>
+<html>
+<head>
+    <title>Nextflow Execution Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .chart { width: 100%; height: 300px; background-color: #f0f0f0; display: flex; 
+                align-items: center; justify-content: center; margin: 20px 0; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <h1>Nextflow Execution Report</h1>
+    <p>This is a simulated Nextflow report for development purposes.</p>
+    
+    <h2>Workflow Summary</h2>
+    <table>
+        <tr><th>Launch time</th><td>2025-03-24 02:09:03</td></tr>
+        <tr><th>Execution status</th><td>OK</td></tr>
+        <tr><th>Duration</th><td>1h 23m 45s</td></tr>
+        <tr><th>CPU-Hours</th><td>2.4</td></tr>
+    </table>
+    
+    <h2>Resource Usage</h2>
+    <div class="chart">Mock CPU Usage Chart</div>
+    <div class="chart">Mock Memory Usage Chart</div>
+    
+    <h2>Tasks Execution Timeline</h2>
+    <div class="chart">Mock Timeline Chart</div>
+    
+    <p>This is just a placeholder. In a real Nextflow report, you would see interactive charts and detailed execution statistics.</p>
 </body>
 </html>"""
     return Response(content=mock_html, media_type="text/html")
