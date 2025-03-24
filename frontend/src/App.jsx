@@ -31,6 +31,7 @@ function App() {
   const [showResults, setShowResults] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [showRunId, setShowRunId] = useState(false);
+  const [lookupRunId, setLookupRunId] = useState("");
 
   const API_BASE_URL = "/api"; 
 
@@ -108,7 +109,7 @@ function App() {
             setMessage("Pipeline complete! Results loaded.");
             setShowResults(true);
           } else {
-            setMessage("No meaningful results found in the response.");
+            setMessage("Results not ready yet.");
           }
         } catch (parseError) {
           console.error("Error parsing TSV:", parseError);
@@ -127,6 +128,56 @@ function App() {
       }
     } catch (err) {
       console.error("Error fetching results:", err);
+      setMessage("Error fetching results: " + err.message);
+    } finally {
+      setCheckingStatus(false);
+    }
+  };
+  
+  // Function to fetch results by a user-provided Run ID
+  const fetchResultsByRunId = async () => {
+    if (!lookupRunId.trim()) return;
+    
+    setCheckingStatus(true);
+    setMessage(`Looking up results for Run ID: ${lookupRunId}`);
+    
+    try {
+      const resultsRes = await fetch(`${API_BASE_URL}/results?run_id=${lookupRunId}`);
+      
+      if (resultsRes.ok) {
+        const responseText = await resultsRes.text();
+        
+        // Check if response is HTML
+        if (responseText.includes('<!doctype html>') || responseText.includes('<html')) {
+          setMessage("Error: Received HTML instead of data. Check API configuration.");
+          return;
+        }
+        
+        try {
+          const parsedResults = parseTSV(responseText);
+          
+          if (parsedResults.length > 0 && Object.keys(parsedResults[0]).length > 0) {
+            setResults(parsedResults);
+            setRunId(lookupRunId); // Set the current runId to the one we looked up
+            setMessage("Results loaded for Run ID: " + lookupRunId);
+            setShowResults(true);
+          } else {
+            setMessage("No results found for this Run ID.");
+          }
+        } catch (parseError) {
+          setMessage("Error parsing results: " + parseError.message);
+        }
+      } else {
+        if (resultsRes.status === 202) {
+          const messageText = await resultsRes.text();
+          setMessage(messageText);
+        } else if (resultsRes.status === 404) {
+          setMessage("No results found for this Run ID. The pipeline may still be running or the ID may be invalid.");
+        } else {
+          setMessage(`Error fetching results: ${resultsRes.status} ${resultsRes.statusText}`);
+        }
+      }
+    } catch (err) {
       setMessage("Error fetching results: " + err.message);
     } finally {
       setCheckingStatus(false);
@@ -240,6 +291,7 @@ function App() {
                   setResults(null);
                   setShowResults(false);
                   setCheckingStatus(false);
+                  setLookupRunId("");
                 }}
                 className="bg-red-600 text-white px-3 py-1 rounded-md text-xs hover:bg-red-700 transition-colors"
               >
@@ -253,6 +305,11 @@ function App() {
       <div className="container mx-auto px-4 py-8">
         <header className="mb-8">
           <h1 className="text-4xl font-bold text-center bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">CloudRes</h1>
+          <p className="text-center text-gray-600 mt-3 max-w-2xl mx-auto">
+          A cloud-based genomic analysis platform for read preprocessing, genomic assembly and sequence typing and antimicrobial resistance screening.<br />
+          <br /> 
+          Upload your FASTQ files to identify antimicrobial resistance genes, virulence factors, and more.
+        </p>
         </header>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -357,7 +414,7 @@ function App() {
             <button
               className={`w-full py-3 px-4 rounded-md font-medium transition-colors duration-200 flex items-center justify-center ${
                 uploading || files.length === 0 || checkingStatus
-                  ? "bg-gray-400 cursor-not-allowed text-white"
+                  ? uploading ? "bg-blue-600 text-white" : "bg-gray-400 cursor-not-allowed text-white"
                   : "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg"
               }`}
               onClick={handleUpload}
@@ -382,7 +439,7 @@ function App() {
             </button>
 
             {/* Status Messages */}
-            {message && (
+            {message && !uploading && (
               <div className={`mt-6 p-4 rounded-md ${
                 message.startsWith("Error") 
                   ? "bg-red-50 border border-red-200 text-red-700" 
@@ -428,42 +485,34 @@ function App() {
 
             {/* Action Buttons */}
             {runId && (
-              <div className="flex justify-center gap-4 mt-6">
-                <button
-                  onClick={() => {
-                    fetchResults();
-                    setShowResults(prev => !prev);
-                  }}
-                  className="flex items-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors shadow-md"
-                >
-                  {showResults ? (
-                    <>
+              <div className="flex justify-center flex-wrap gap-4 mt-6">
+                {/* Only show report buttons when complete */}
+                {message && message.includes("complete") && (
+                  <>
+                    <a
+                      href={devMode ? `${API_BASE_URL}/test/nextflow` : `${API_BASE_URL}/nextflow_report?run_id=${runId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors shadow-md"
+                    >
                       <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                       </svg>
-                      Hide Pipeline Results
-                    </>
-                  ) : (
-                    <>
+                      View Nextflow Report
+                    </a>
+                    <a
+                      href={devMode ? `${API_BASE_URL}/test/multiqc` : `${API_BASE_URL}/multiqc_report?run_id=${runId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors shadow-md"
+                    >
                       <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                       </svg>
-                      View Pipeline Results
-                    </>
-                  )}
-                </button>
-                <a
-                  href={devMode ? `${API_BASE_URL}/test/multiqc` : `${API_BASE_URL}/multiqc_report?run_id=${runId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 transition-colors shadow-md"
-                >
-                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                  </svg>
-                  View MultiQC Report
-                </a>
+                      View MultiQC Report
+                    </a>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -508,9 +557,43 @@ function App() {
                   </svg>
                 </div>
                 <h2 className="text-2xl font-bold text-gray-700 mb-2">No Results Yet</h2>
-                <p className="text-gray-500 max-w-md">
+                <p className="text-gray-500 max-w-md mb-6">
                   Upload your FASTQ files using the form on the left to start the analysis pipeline. Once complete, your results will appear here.
                 </p>
+                
+                {/* Run ID Lookup Widget */}
+                <div className="mt-2 w-full max-w-md">
+                  <div className="border-t border-gray-200 pt-4 mt-2">
+                    <p className="text-sm text-gray-600 mb-2">Or look up results with an existing Run ID:</p>
+                    <div className="flex">
+                      <input
+                        type="text"
+                        value={lookupRunId}
+                        onChange={(e) => setLookupRunId(e.target.value)}
+                        placeholder="Enter Run ID"
+                        className="flex-grow px-3 py-2 border border-gray-200 rounded-l-md text-sm text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
+                      />
+                      <button
+                        onClick={fetchResultsByRunId}
+                        disabled={!lookupRunId.trim() || checkingStatus}
+                        className={`px-3 py-2 rounded-r-md text-sm ${
+                          !lookupRunId.trim() || checkingStatus
+                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            : "bg-blue-600 text-white hover:bg-blue-700"
+                        }`}
+                      >
+                        {checkingStatus ? (
+                          <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : (
+                          "Look Up"
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
                 
                 {runId && !showResults && (
                   <div className="mt-8 p-4 bg-blue-50 rounded-lg border border-blue-100 max-w-md">
@@ -547,8 +630,49 @@ function App() {
             </span>
           </div>
         )}
+
+        {/* Page Footer with Logo */}
+        <div className="mt-8 mb-4 pt-6 border-t border-gray-200 flex flex-col items-center justify-center">
+          <img 
+            src="/CloudRes.png" 
+            alt="CloudRes Logo" 
+            className="h-128 mb-4 opacity-80" 
+          />
+          
+          <div className="flex items-center gap-6 mb-4">
+            {/* GitHub Link */}
+            <a 
+              href="https://github.com/yourusername/cloudres" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              <svg className="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+              </svg>
+              GitHub
+            </a>
+            
+            {/* Contact Email */}
+            <a 
+              href="mailto:max.l.cummins@gmail.com" 
+              className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"
+            >
+              <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+              </svg>
+              max.l.cummins@gmail.com
+            </a>
+          </div>
+          
+          <p className="text-xs text-gray-400">© 2025 CloudRes</p>
+        </div>
+
+
+
+
+        </div>
       </div>
-    </div>
   );
 }
 
