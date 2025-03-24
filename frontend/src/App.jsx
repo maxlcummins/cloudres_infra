@@ -42,6 +42,22 @@ function App() {
     setShowResults(false); // Hide results when new files are dropped
   }, []);
 
+  const downloadTestDataFiles = () => {
+    // Helper function to trigger a file download
+    const downloadFile = (filename) => {
+      const link = document.createElement('a');
+      link.href = `${API_BASE_URL}/api/download-test-data/${filename}`;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+  
+    // Download both files with a small delay between them
+    downloadFile('reads_R1.fastq.gz');
+    setTimeout(() => downloadFile('reads_R2.fastq.gz'), 500);
+  };
+
   const handleUpload = async () => {
     if (files.length === 0) {
       setMessage("Please select files to upload.");
@@ -309,8 +325,8 @@ function App() {
           A cloud-based genomic analysis platform for read preprocessing, genomic assembly and sequence typing and antimicrobial resistance screening.<br />
           <br /> 
           Upload your FASTQ files to identify antimicrobial resistance genes, virulence factors, and more.
-        </p>
-        </header>
+        </p>        
+      </header>
         
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Left Column - Upload Form */}
@@ -614,6 +630,19 @@ function App() {
           </div>
         </div>
         
+        {/* Test Data Download Button with increased top margin */}
+        <div className="mt-10 mb-8 flex justify-center">
+          <button 
+            onClick={downloadTestDataFiles}
+            className="flex items-center bg-gray-100 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-200 transition-colors shadow-sm border border-gray-300"
+          >
+            <svg className="w-5 h-5 mr-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+            Download Test Reads
+          </button>
+        </div>
+
         {/* Footer */}
         {runId && (
           <div className="mt-8 mb-4 text-xs text-gray-500 text-center">
@@ -642,7 +671,7 @@ function App() {
           <div className="flex items-center gap-6 mb-4">
             {/* GitHub Link */}
             <a 
-              href="https://github.com/yourusername/cloudres" 
+              href="https://github.com/maxlcummins/cloudres" 
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center text-gray-600 hover:text-blue-600 transition-colors"
