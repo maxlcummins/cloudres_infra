@@ -396,22 +396,6 @@ function App() {
               </div>
             )}
 
-            {/* Upload Progress Bar */}
-            {uploading && (
-              <div className="mb-6">
-                <div className="flex justify-between mb-1">
-                  <p className="text-sm font-medium text-blue-600">Uploading...</p>
-                  <p className="text-sm font-medium text-blue-600">{uploadProgress}%</p>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div 
-                    className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-in-out" 
-                    style={{ width: `${uploadProgress}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
-
             {/* Status Indicator */}
             {checkingStatus && !uploading && (
               <div className="mb-6 flex justify-center">
